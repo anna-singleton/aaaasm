@@ -8,51 +8,99 @@ fn noop_test() {
 }
 
 #[test]
-fn ldai_test() {
-    let mut state = State::init(vec![Instruction::LDAI(5)]);
+fn load_test() {
+    let mut state = State::init(vec![Instruction::LOAD(5)]);
     assert_eq!(state.run(), Ok(true));
     assert_eq!(state.accumulator, 5);
 }
 
 #[test]
-fn addi_test() {
-    let mut state = State::init(vec![Instruction::ADDI(10)]);
+fn r2a_load_test() {
+    let mut state = State::init(vec![Instruction::R2A_LOAD(0)]);
+    state.registers[0] = 5;
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.accumulator, 5);
+}
+
+#[test]
+fn m2r_load_test() {
+    let mut state = State::init(vec![Instruction::M2R_LOAD(1, 2)]);
+    state.memory[1] = 10;
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.registers[2], 10);
+}
+
+#[test]
+fn m2a_load_test() {
+    let mut state = State::init(vec![Instruction::M2A_LOAD(1)]);
+    state.memory[1] = 10;
     assert_eq!(state.run(), Ok(true));
     assert_eq!(state.accumulator, 10);
 }
 
 #[test]
-fn jmpa_ok_test() {
-    let mut state = State::init(vec![Instruction::JMPA(2), Instruction::NOOP(), Instruction::NOOP()]);
+fn a2r_store_test() {
+    let mut state = State::init(vec![Instruction::A2R_STORE(1)]);
+    state.accumulator = 15;
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.registers[1], 15);
+}
+
+#[test]
+fn a2m_store_test() {
+    let mut state = State::init(vec![Instruction::A2M_STORE(5)]);
+    state.accumulator = 20;
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.memory[5], 20);
+}
+
+#[test]
+fn r2m_store_test() {
+    let mut state = State::init(vec![Instruction::R2M_STORE(3, 50)]);
+    state.registers[3] = 100;
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.memory[50], 100);
+}
+
+#[test]
+fn i_add_test() {
+    let mut state = State::init(vec![Instruction::I_ADD(10)]);
+    assert_eq!(state.run(), Ok(true));
+    assert_eq!(state.accumulator, 10);
+}
+
+#[test]
+fn jump_ok_test() {
+    let mut state = State::init(vec![Instruction::JUMP(2), Instruction::NOOP(), Instruction::NOOP()]);
     assert_eq!(state.run(), Ok(false));
     assert_eq!(state.pc, 2);
 }
 
 #[test]
-fn jmpa_err_test() {
-    let mut state = State::init(vec![Instruction::JMPA(10)]);
+fn jump_err_test() {
+    let mut state = State::init(vec![Instruction::JUMP(10)]);
     assert_eq!(state.run(), Err(()));
 }
 
 #[test]
-fn jmpn_ok_test() {
-    let mut state = State::init(vec![Instruction::JMPN(2), Instruction::NOOP(), Instruction::NOOP()]);
+fn jump_neg_ok_test() {
+    let mut state = State::init(vec![Instruction::JUMP_NEG(2), Instruction::NOOP(), Instruction::NOOP()]);
     state.accumulator = -1;
     assert_eq!(state.run(), Ok(false));
     assert_eq!(state.pc, 2);
 }
 
 #[test]
-fn jmpn_nojmp_test() {
-    let mut state = State::init(vec![Instruction::JMPN(2), Instruction::NOOP(), Instruction::NOOP()]);
+fn jump_neg_nojmp_test() {
+    let mut state = State::init(vec![Instruction::JUMP_NEG(2), Instruction::NOOP(), Instruction::NOOP()]);
     state.accumulator = 1;
     assert_eq!(state.run(), Ok(true));
     assert_eq!(state.pc, 1);
 }
 
 #[test]
-fn jmpn_err_test() {
-    let mut state = State::init(vec![Instruction::JMPN(10)]);
+fn jump_neg_err_test() {
+    let mut state = State::init(vec![Instruction::JUMP_NEG(10)]);
     assert_eq!(state.run(), Err(()));
 }
 
