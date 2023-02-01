@@ -9,7 +9,7 @@ const MEM_SIZE:usize = 1024;
 type InstructionReturn = Result<bool, ()>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Instruction {
+pub enum Instruction {
     NOOP(),
     LOAD(i32), // LOAD IMMEDIATE INTO ACC
     R2A_LOAD(i32), // LOAD FROM REG INTO ACC
