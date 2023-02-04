@@ -1,9 +1,26 @@
 use crate::interpreter::Instruction;
+mod tests;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Operand {
     Register(i32), // like R1
     Number(i32) // like 102
+}
+
+impl Operand {
+    fn is_register(&self) -> bool {
+        return match self {
+            Operand::Register(_) => true,
+            _ => false,
+        }
+    }
+
+    fn is_number(&self) -> bool {
+        return match self {
+            Operand::Number(_) => true,
+            _ => false,
+        }
+    }
 }
 
 impl std::str::FromStr for Operand {
@@ -13,7 +30,15 @@ impl std::str::FromStr for Operand {
         let first = s.chars().nth(0).unwrap();
         if first == 'R' || first == 'r' {
             // register
-            todo!()
+            if s.len() == 1 {
+                return Err("Attempted to parse register, but no register \
+                           number was given!".to_string())
+            }
+            return match (&s[1..]).parse::<i32>() {
+                Ok(num) => Ok(Operand::Register(num)),
+                Err(err) => Err(format!("Attempted to parse {} as register number but failed! \
+                                        Error given: {}", &s[1..], err.to_string())),
+            };
         } else {
             // other number
             let number = s.parse::<i32>();
@@ -44,6 +69,11 @@ pub fn parse_instruction(s: &str) -> Result<Instruction, String> {
 
     let ops = parse_operands(&words[1..].to_vec());
 
+    match words[0] {
+        "NOOP" => {
+
+        }
+    }
 
     todo!()
 }
