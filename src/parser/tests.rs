@@ -37,3 +37,17 @@ fn parse_operand_fail() {
     let ops = parse_operands(&vec!["bar"]);
     assert!(ops.is_err());
 }
+
+#[test]
+fn parse_instruction1_test() {
+    let input = "NOOP";
+    let goal = Ok(Instruction::NOOP());
+    assert_eq!(parse_instruction(input), goal);
+}
+
+#[test]
+fn parse_instruction2_test() {
+    let input = "M2R_LOAD 200 R2";
+    let goal = Ok(Instruction::M2R_LOAD(200, 2));
+    assert_eq!(parse_instruction(input), goal);
+}
