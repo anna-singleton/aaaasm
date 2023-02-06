@@ -61,6 +61,14 @@ impl std::str::FromStr for Operand {
     }
 }
 
+fn matching_operand_formats(x: &Vec<Operand>, y: &Vec<Operand>) -> bool {
+    if x.len() != y.len() {
+        return false;
+    }
+
+    return x.iter().zip(y.iter()).all(|(op1, op2)| op1.type_matches(op2));
+}
+
 fn parse_operands(operands: &Vec<&str>) -> Result<Vec<Operand>, String> {
     let ops:Vec<_> = operands.iter().map(|word| word.parse::<Operand>()).collect();
     for op in ops.iter() {
@@ -158,10 +166,29 @@ pub fn parse_instruction(s: &str) -> Result<Instruction, String> {
     });
 }
 
-fn matching_operand_formats(x: &Vec<Operand>, y: &Vec<Operand>) -> bool {
-    if x.len() != y.len() {
-        return false;
+pub fn parse_code(s: &str) -> Result<Vec<Instruction>, String> {
+    // comments in AAAASM will begin with a :) or :(
+    let lines:Vec<_> = s.split('\n').collect();
+    println!("{:?}", lines);
+    // let lines:Vec<_> = lines
+    //     .into_iter()
+    //     .filter(|line| *line != "")
+    //     .filter(|line| !(line.starts_with(":)") || line.starts_with(":(")) )
+    //     .collect();
+    // println!("{:?}", lines);
+
+    let mut instructions = Vec::new();
+
+    for (line_num, line) in lines.iter().enumerate() {
+        if !(line.starts_with(":)") || line.starts_with(":(") || *line == "") {
+            match parse_instruction(line){
+                Ok(ins) => instructions.push(ins),
+                Err(err) => return Err(format!("Error parsing line {}, error given: {}",
+                                       line_num, err)),
+            }
+        }
     }
 
-    return x.iter().zip(y.iter()).all(|(op1, op2)| op1.type_matches(op2));
+    return Ok(instructions);
 }
+

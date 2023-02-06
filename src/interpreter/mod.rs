@@ -24,7 +24,7 @@ pub enum Instruction {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-struct State {
+pub struct Interpreter {
     instructions: Vec<Instruction>,
     pc: usize,
     accumulator: i32,
@@ -32,9 +32,9 @@ struct State {
     memory: [i32; MEM_SIZE]
 }
 
-impl State {
-    pub fn init(ins: Vec<Instruction>) -> State {
-        State {
+impl Interpreter {
+    pub fn new(ins: Vec<Instruction>) -> Interpreter {
+        Interpreter {
             instructions: ins,
             pc: 0,
             accumulator: 0,
@@ -82,15 +82,19 @@ impl State {
         }
         return ret
     }
+
+    pub fn get_acc(&self) -> i32 {
+        return self.accumulator;
+    }
 }
 
 
-fn LOAD(s: &mut State, x: i32) -> InstructionReturn {
-    s.accumulator += x;
+fn LOAD(s: &mut Interpreter, x: i32) -> InstructionReturn {
+    s.accumulator = x;
     return Ok(true);
 }
 
-fn R2A_LOAD(s: &mut State, x: i32) -> InstructionReturn {
+fn R2A_LOAD(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
         eprintln!("Illegal register access! Attempted to access {} but negative indices not allowed", x);
         return Err(())
@@ -104,7 +108,7 @@ fn R2A_LOAD(s: &mut State, x: i32) -> InstructionReturn {
     }
 }
 
-fn M2R_LOAD(s: &mut State, mem_addr: i32, reg: i32) -> InstructionReturn {
+fn M2R_LOAD(s: &mut Interpreter, mem_addr: i32, reg: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
         eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
         mem_addr, MEM_SIZE);
@@ -120,7 +124,7 @@ fn M2R_LOAD(s: &mut State, mem_addr: i32, reg: i32) -> InstructionReturn {
     return Ok(true);
 }
 
-fn M2A_LOAD(s: &mut State, mem_addr: i32) -> InstructionReturn {
+fn M2A_LOAD(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
         eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
         mem_addr, MEM_SIZE);
@@ -131,7 +135,7 @@ fn M2A_LOAD(s: &mut State, mem_addr: i32) -> InstructionReturn {
     return Ok(true);
 }
 
-fn A2R_STORE(s: &mut State, reg: i32) -> InstructionReturn {
+fn A2R_STORE(s: &mut Interpreter, reg: i32) -> InstructionReturn {
     if reg < 0 || reg >= REG_NUMBER as i32 {
         eprintln!("Attempted to access bad register! Accessed {} but the register amount is {}",
         reg, REG_NUMBER);
@@ -141,7 +145,7 @@ fn A2R_STORE(s: &mut State, reg: i32) -> InstructionReturn {
     return Ok(true)
 }
 
-fn A2M_STORE(s: &mut State, mem_addr: i32) -> InstructionReturn {
+fn A2M_STORE(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
         eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
         mem_addr, MEM_SIZE);
@@ -152,7 +156,7 @@ fn A2M_STORE(s: &mut State, mem_addr: i32) -> InstructionReturn {
     return Ok(true);
 }
 
-fn R2M_STORE(s: &mut State, reg: i32, mem_addr: i32) -> InstructionReturn {
+fn R2M_STORE(s: &mut Interpreter, reg: i32, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
         eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
         mem_addr, MEM_SIZE);
@@ -168,12 +172,12 @@ fn R2M_STORE(s: &mut State, reg: i32, mem_addr: i32) -> InstructionReturn {
     return Ok(true);
 }
 
-fn I_ADD(s: &mut State, x: i32) -> InstructionReturn {
+fn I_ADD(s: &mut Interpreter, x: i32) -> InstructionReturn {
     s.accumulator += x;
     return Ok(true);
 }
 
-fn JUMP(s: &mut State, x: i32) -> InstructionReturn {
+fn JUMP(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
         eprintln!("Illegal jump action. Tried to jump to {}", x);
         return Err(())
@@ -190,7 +194,7 @@ fn JUMP(s: &mut State, x: i32) -> InstructionReturn {
     return Ok(false)
 }
 
-fn JUMP_NEG(s: &mut State, x: i32) -> InstructionReturn {
+fn JUMP_NEG(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
         eprintln!("Illegal jump action. Tried to jump to {}", x);
         return Err(())
