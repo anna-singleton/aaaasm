@@ -6,7 +6,7 @@ const REG_NUMBER:usize = 4;
 const MEM_SIZE:usize = 1024;
 
 // bool is whether or not to increase the PC
-type InstructionReturn = Result<bool, ()>;
+type InstructionReturn = Result<bool, String>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Instruction {
@@ -19,6 +19,7 @@ pub enum Instruction {
     A2M_STORE(i32), // STORE FROM ACC INTO MEM
     R2M_STORE(i32, i32), // STORE FROM REG INTO MEM
     I_ADD(i32), // ADD IMMEDIATE TO ACC
+    R_ADD(i32), // ADD REGISTER TO ACC
     JUMP(i32), // ALWAYS JUMP TO IMMEDIATE
     JUMP_NEG(i32), // JUMP TO IMMEDIATE IF ACC < 0
 }
@@ -27,7 +28,7 @@ pub enum Instruction {
 pub struct Interpreter {
     instructions: Vec<Instruction>,
     pc: usize,
-    accumulator: i32,
+    pub accumulator: i32,
     registers: [i32; REG_NUMBER],
     memory: [i32; MEM_SIZE]
 }
@@ -43,7 +44,7 @@ impl Interpreter {
         }
     }
 
-    pub fn run(&mut self) -> InstructionReturn {
+    pub fn run_single(&mut self) -> Result<(), String> {
         let ret = match self.instructions.get(self.pc) {
             Some(ins) => {
                 match ins {
@@ -63,6 +64,7 @@ impl Interpreter {
 
                     // maths instructions
                     Instruction::I_ADD(x) => I_ADD(self, *x),
+                    Instruction::R_ADD(x) => R_ADD(self, *x),
 
                     // jump instructions
                     Instruction::JUMP(ins) => JUMP(self, *ins),
@@ -70,21 +72,29 @@ impl Interpreter {
                 }
             },
             None => {
-                eprintln!("Attempted to execute instruction {}, but that is out of bounds!", self.pc);
-                return Err(())
+                return Err(format!("Attempted to execute instruction {}, but that is out of bounds!", self.pc));
             },
         };
 
         if ret.is_ok() {
-            if ret.unwrap() {
+            if *ret.as_ref().unwrap() {
                 self.pc += 1;
             }
         }
-        return ret
+        match ret {
+            Ok(_) => return Ok(()),
+            Err(err) => Err(err),
+        }
     }
 
-    pub fn get_acc(&self) -> i32 {
-        return self.accumulator;
+    pub fn run_program(&mut self) -> Result<i32, String> {
+        while self.pc < self.instructions.len() {
+            let result = self.run_single();
+            if result.is_err() {
+                return Err(result.unwrap_err());
+            }
+        }
+        return Ok(self.accumulator);
     }
 }
 
@@ -96,28 +106,22 @@ fn LOAD(s: &mut Interpreter, x: i32) -> InstructionReturn {
 
 fn R2A_LOAD(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
-        eprintln!("Illegal register access! Attempted to access {} but negative indices not allowed", x);
-        return Err(())
+        return Err(format!("Illegal register access! Attempted to access {} but negative indices not allowed", x));
     }
     else if x < REG_NUMBER as i32 {
         s.accumulator = s.registers[x as usize];
         return Ok(true);
     } else {
-        eprintln!("Illegal register access! Attempted to access {} but there is only {} registers", x, REG_NUMBER);
-        return Err(())
+        return Err(format!("Illegal register access! Attempted to access {} but there is only {} registers", x, REG_NUMBER));
     }
 }
 
 fn M2R_LOAD(s: &mut Interpreter, mem_addr: i32, reg: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
-        eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
-        mem_addr, MEM_SIZE);
-        return Err(())
+        return Err(format!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}", mem_addr, MEM_SIZE))
     }
     if reg < 0 || reg >= REG_NUMBER as i32 {
-        eprintln!("Attempted to access bad register! Accessed {} but the register amount is {}",
-        reg, REG_NUMBER);
-        return Err(())
+        return Err(format!("Attempted to access bad register! Accessed {} but the register amount is {}", reg, REG_NUMBER))
     }
 
     s.registers[reg as usize] = s.memory[mem_addr as usize];
@@ -126,9 +130,7 @@ fn M2R_LOAD(s: &mut Interpreter, mem_addr: i32, reg: i32) -> InstructionReturn {
 
 fn M2A_LOAD(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
-        eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
-        mem_addr, MEM_SIZE);
-        return Err(())
+        return Err(format!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}", mem_addr, MEM_SIZE))
     }
     s.accumulator = s.memory[mem_addr as usize];
 
@@ -137,9 +139,7 @@ fn M2A_LOAD(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
 
 fn A2R_STORE(s: &mut Interpreter, reg: i32) -> InstructionReturn {
     if reg < 0 || reg >= REG_NUMBER as i32 {
-        eprintln!("Attempted to access bad register! Accessed {} but the register amount is {}",
-        reg, REG_NUMBER);
-        return Err(())
+        return Err(format!("Attempted to access bad register! Accessed {} but the register amount is {}", reg, REG_NUMBER));
     }
     s.registers[reg as usize] = s.accumulator;
     return Ok(true)
@@ -147,9 +147,7 @@ fn A2R_STORE(s: &mut Interpreter, reg: i32) -> InstructionReturn {
 
 fn A2M_STORE(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
-        eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
-        mem_addr, MEM_SIZE);
-        return Err(())
+        return Err(format!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}", mem_addr, MEM_SIZE))
     }
     s.memory[mem_addr as usize] = s.accumulator;
 
@@ -158,14 +156,10 @@ fn A2M_STORE(s: &mut Interpreter, mem_addr: i32) -> InstructionReturn {
 
 fn R2M_STORE(s: &mut Interpreter, reg: i32, mem_addr: i32) -> InstructionReturn {
     if mem_addr < 0 || mem_addr >= MEM_SIZE as i32 {
-        eprintln!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}",
-        mem_addr, MEM_SIZE);
-        return Err(())
+        return Err(format!("Attempted to access memory out of bounds! Accessed {} but the mem size is {}", mem_addr, MEM_SIZE));
     }
     if reg < 0 || reg >= REG_NUMBER as i32 {
-        eprintln!("Attempted to access bad register! Accessed {} but the register amount is {}",
-        reg, REG_NUMBER);
-        return Err(())
+        return Err(format!("Attempted to access bad register! Accessed {} but the register amount is {}", reg, REG_NUMBER))
     }
     s.memory[mem_addr as usize] = s.registers[reg as usize];
 
@@ -177,17 +171,21 @@ fn I_ADD(s: &mut Interpreter, x: i32) -> InstructionReturn {
     return Ok(true);
 }
 
+fn R_ADD(s: &mut Interpreter, reg: i32) -> InstructionReturn {
+    if reg < 0 || reg >= REG_NUMBER as i32 {
+        return Err(format!("Attempted to access bad register! Accessed {} but the register amount is {}", reg, REG_NUMBER))
+    }
+    s.accumulator += s.registers[reg as usize];
+    return Ok(true);
+}
+
 fn JUMP(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
-        eprintln!("Illegal jump action. Tried to jump to {}", x);
-        return Err(())
+        return Err(format!("Illegal jump action. Tried to jump to {}", x));
     }
     if x >= s.instructions.len() as i32 {
         // illegal jump
-        eprintln!("Illegal jump action. Tried to jump from {} to {} but the \
-            last instruction has an idx of {}", s.pc, x,
-            s.instructions.len());
-        return Err(());
+        return Err(format!("Illegal jump action. Tried to jump from {} to {} but the last instruction has an idx of {}", s.pc, x, s.instructions.len()));
     }
 
     s.pc = x as usize;
@@ -196,15 +194,11 @@ fn JUMP(s: &mut Interpreter, x: i32) -> InstructionReturn {
 
 fn JUMP_NEG(s: &mut Interpreter, x: i32) -> InstructionReturn {
     if x < 0 {
-        eprintln!("Illegal jump action. Tried to jump to {}", x);
-        return Err(())
+        return Err(format!("Illegal jump action. Tried to jump to {}", x));
     }
     if x >= s.instructions.len() as i32 {
         // illegal jump
-        eprintln!("Illegal jump action. Tried to jump from {} to {} but the \
-            last instruction has an idx of {}", s.pc, x,
-            s.instructions.len());
-        return Err(());
+        return Err(format!("Illegal jump action. Tried to jump from {} to {} but the last instruction has an idx of {}", s.pc, x, s.instructions.len()));
     }
     if s.accumulator >= 0 {
         return Ok(true)

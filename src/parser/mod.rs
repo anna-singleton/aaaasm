@@ -8,20 +8,6 @@ enum Operand {
 }
 
 impl Operand {
-    fn is_register(&self) -> bool {
-        return match self {
-            Operand::Register(_) => true,
-            _ => false,
-        }
-    }
-
-    fn is_number(&self) -> bool {
-        return match self {
-            Operand::Number(_) => true,
-            _ => false,
-        }
-    }
-
     fn type_matches(&self, other: &Operand) -> bool {
         return std::mem::discriminant(self) == std::mem::discriminant(other);
     }
@@ -134,6 +120,10 @@ pub fn parse_instruction(s: &str) -> Result<Instruction, String> {
             instruction = Instruction::I_ADD(0);
             vec![Operand::Number(0)]
         }
+        "R_ADD" => {
+            instruction = Instruction::R_ADD(0);
+            vec![Operand::Register(0)]
+        }
         "JUMP" => {
             instruction = Instruction::JUMP(0);
             vec![Operand::Number(0)]
@@ -161,6 +151,7 @@ pub fn parse_instruction(s: &str) -> Result<Instruction, String> {
         Instruction::A2M_STORE(_) => Instruction::A2M_STORE(ops[0].inner()),
         Instruction::R2M_STORE(_, _) => Instruction::R2M_STORE(ops[0].inner(), ops[1].inner()),
         Instruction::I_ADD(_) => Instruction::I_ADD(ops[0].inner()),
+        Instruction::R_ADD(_) => Instruction::R_ADD(ops[0].inner()),
         Instruction::JUMP(_) => Instruction::JUMP(ops[0].inner()),
         Instruction::JUMP_NEG(_) => Instruction::JUMP_NEG(ops[0].inner()),
     });
@@ -169,13 +160,6 @@ pub fn parse_instruction(s: &str) -> Result<Instruction, String> {
 pub fn parse_code(s: &str) -> Result<Vec<Instruction>, String> {
     // comments in AAAASM will begin with a :) or :(
     let lines:Vec<_> = s.split('\n').collect();
-    println!("{:?}", lines);
-    // let lines:Vec<_> = lines
-    //     .into_iter()
-    //     .filter(|line| *line != "")
-    //     .filter(|line| !(line.starts_with(":)") || line.starts_with(":(")) )
-    //     .collect();
-    // println!("{:?}", lines);
 
     let mut instructions = Vec::new();
 
@@ -184,7 +168,7 @@ pub fn parse_code(s: &str) -> Result<Vec<Instruction>, String> {
             match parse_instruction(line){
                 Ok(ins) => instructions.push(ins),
                 Err(err) => return Err(format!("Error parsing line {}, error given: {}",
-                                       line_num, err)),
+                                       line_num+1, err)),
             }
         }
     }

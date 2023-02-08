@@ -8,11 +8,22 @@ fn main() {
 
     let parsed_input = parser::parse_code(input);
 
-    println!("parsed input:\n{:?}", parsed_input);
-
     if parsed_input.is_err() {
         eprintln!("fatal error: couldnt parse code, exiting");
     }
 
-    let instructions = parsed_input.unwrap();
+    let instructions = match parsed_input {
+        Ok(instructions) => instructions,
+        Err(err) => {
+            eprintln!("Couldn't parse instructions, error: {}", err);
+            return;
+        },
+    };
+
+    let mut interpreter = Interpreter::new(instructions);
+
+    match interpreter.run_program() {
+        Ok(result) => println!("program finished with {} in acc", result),
+        Err(err) => println!("program failed with error: {}", err),
+    }
 }

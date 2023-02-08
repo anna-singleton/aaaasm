@@ -1,4 +1,7 @@
 LOAD 10
-:) this is a smile comment
 I_ADD 5
-:( this is a sad comment
+A2R_STORE r0
+:( sad comment
+LOAD 20
+:) happy comment
+R_ADD r0
