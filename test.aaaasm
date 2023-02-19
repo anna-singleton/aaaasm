@@ -1,0 +1,7 @@
+LOAD 10
+I_ADD 5
+A2R_STORE r0
+:( sad comment
+LOAD 20
+:) happy comment
+R_ADD r0

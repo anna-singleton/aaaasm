@@ -24,13 +24,35 @@ pub enum Instruction {
     JUMP_NEG(i32), // JUMP TO IMMEDIATE IF ACC < 0
 }
 
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::NOOP() => write!(f, "NOOP"),
+            Instruction::LOAD(x) => write!(f, "LOAD {}", x),
+            Instruction::R2A_LOAD(r) => write!(f, "R2A_LOAD r{}", r),
+            Instruction::M2R_LOAD(m, r) => write!(f, "M2R_LOAD {} r{}", m , r),
+            Instruction::M2A_LOAD(m) => write!(f, "M2A_LOAD {}", m),
+            Instruction::A2R_STORE(r) => write!(f, "A2R_STORE r{}", r),
+            Instruction::A2M_STORE(m) => write!(f, "A2M_STORE {}", m),
+            Instruction::R2M_STORE(r, m) => write!(f, "R2M_STORE r{} {}", r, m),
+            Instruction::I_ADD(x) => write!(f, "I_ADD {}", x),
+            Instruction::R_ADD(r) => write!(f, "R_ADD r{}", r),
+            // NI because of impending rework to JUMP instructions
+            Instruction::JUMP(_) => todo!(),
+            Instruction::JUMP_NEG(_) => todo!(),
+        }
+    }
+}
+
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Interpreter {
     instructions: Vec<Instruction>,
     pc: usize,
     pub accumulator: i32,
     registers: [i32; REG_NUMBER],
-    memory: [i32; MEM_SIZE]
+    memory: [i32; MEM_SIZE],
+    pub trace: bool
 }
 
 impl Interpreter {
@@ -41,6 +63,7 @@ impl Interpreter {
             accumulator: 0,
             registers: [0; REG_NUMBER],
             memory: [0; MEM_SIZE],
+            trace: false,
         }
     }
 
@@ -72,7 +95,7 @@ impl Interpreter {
                 }
             },
             None => {
-                return Err(format!("Attempted to execute instruction {}, but that is out of bounds!", self.pc));
+                return Err(format!("Attempted to execute instruction at idx {}, but that is out of bounds!", self.pc));
             },
         };
 
@@ -89,9 +112,19 @@ impl Interpreter {
 
     pub fn run_program(&mut self) -> Result<i32, String> {
         while self.pc < self.instructions.len() {
-            let result = self.run_single();
-            if result.is_err() {
-                return Err(result.unwrap_err());
+            if self.trace {
+                let instruction_str = self.instructions[self.pc].to_string();
+                let result = self.run_single();
+                if result.is_err() {
+                    return Err(format!("Error occurred processing instruction {}:\n{}", self.instructions[self.pc], result.unwrap_err()));
+                }
+                println!("Accumulator has value {} after instruction {}", self.accumulator, instruction_str);
+            }
+            else {
+                let result = self.run_single();
+                if result.is_err() {
+                    return Err(result.unwrap_err());
+                }
             }
         }
         return Ok(self.accumulator);
